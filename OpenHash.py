@@ -304,3 +304,100 @@ if __name__ == "__main__":
 # me destroze los putos dedos vale verga puta madre espero tu puta pc de mierda no explote
 # espero no sea tan pesado para tu puta mierda de tu compu del gobierno
 # ni linus torvalds chad god salva con su codigo tu pc de mierda puta madre
+import argparse
+import sys
+
+def procesar_argumentos():
+    parser = argparse.ArgumentParser(description="OpenHash — Herramienta de integridad sin rodeos.")
+    parser.add_argument("-f", "--file", help="Ruta del archivo a procesar")
+    parser.add_argument("-a", "--algo", default="sha256", help="Algoritmo (sha256, md5, etc.)")
+    import os
+
+def verificar_integridad_carpeta():
+    print("\n--- VERIFICACIÓN MASIVA DE CARPETA ---")
+    carpeta = input("Ruta de la carpeta a inspeccionar: ").strip('"\'')
+    
+    if not os.path.isdir(carpeta):
+        print("Error: La ruta proporcionada no es una carpeta válida.")
+        return
+
+    # Buscamos un archivo de hashes estándar en la carpeta
+    archivo_hashes = None
+    for nombre in ["checksums.sha256", "hashes.txt", "checksums.txt"]:
+        ruta_posible = os.path.join(carpeta, nombre)
+        if os.path.exists(ruta_posible):
+            archivo_hashes = ruta_posible
+            break
+
+    if not archivo_hashes:
+        print("No se encontró ningún archivo 'checksums.sha256' o 'hashes.txt' en esa carpeta.")
+        return
+
+    print(f"[+] Leyendo lista de hashes desde: {os.path.basename(archivo_hashes)}\n")
+    
+    correctos = 0
+    fallidos = 0
+
+    with open(archivo_hashes, "r", encoding="utf-8") as f:
+        for linea in f:
+            linea = linea.strip()
+            if not linea or "  " not in linea:
+                continue
+            
+            hash_esperado, nombre_archivo = linea.split("  ", 1)
+            ruta_archivo = os.path.join(carpeta, nombre_archivo)
+
+            if not os.path.exists(ruta_archivo):
+                print(f"[✘] FALTANTE: {nombre_archivo}")
+                fallidos += 1
+                continue
+
+            # Calculamos el hash real usando tu función por bloques
+            hash_real = _calcular_hash_archivo(ruta_archivo, "sha256")
+
+            if hash_real == hash_esperado.lower():
+                print(f"[✔] OK: {nombre_archivo}")
+                correctos += 1
+            else:
+                print(f"[✘] CORRUPTO/ALTERADO: {nombre_archivo}")
+                fallidos += 1
+
+    print("-" * 50)
+    print(f"Resumen: {correctos} correctos, {fallidos} con errores o faltantes.")
+
+    # Solo parseamos si el usuario pasó argumentos en la terminal
+    if len(sys.argv) > 1:
+        args = parser.parse_args()
+        if args.file:
+            print(f"Procesando {args.file} con {args.algo}...")
+            # Aquí llamas a tu función de calcular hash
+            # hash_result = _calcular_hash_archivo(args.file, args.algo)
+            # print(f"Hash: {hash_result}")
+            sys.exit(0) # Termina la ejecución tras mostrar el resultado
+
+if __name__ == "__main__":
+    procesar_argumentos() # Revisa si enviaron banderas tipo -f
+    main() # Si no enviaron nada, abre tu menú interactivo normal
+def comparar_archivos_side_by_side():
+    print("\n--- COMPARACIÓN SIDE-BY-SIDE ---")
+    file1 = input("Ruta del primer archivo: ").strip('"\'')
+    file2 = input("Ruta del segundo archivo: ").strip('"\'')
+    
+    # Calculamos el hash SHA256 de ambos usando tu función por bloques
+    hash1 = _calcular_hash_archivo(file1, "sha256")
+    hash2 = _calcular_hash_archivo(file2, "sha256")
+    
+    # Si alguna función devolvió None por un error de ruta/permisos
+    if not hash1 or not hash2:
+        print("Error: No se pudo procesar uno o ambos archivos. Revisa las rutas.")
+        return
+
+    print("\n[+] RESULTADOS:")
+    print(f"Archivo 1: {hash1}")
+    print(f"Archivo 2: {hash2}")
+    print("-" * 64)
+
+    if hash1 == hash2:
+        print("[✔] Los hashes coinciden EXACTAMENTE. El archivo es idéntico.")
+    else:
+        print("[✘] ALERTA: Los hashes NO coinciden. Alguien metió la mano ahí o el archivo está corrupto.")
